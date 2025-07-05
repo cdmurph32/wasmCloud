@@ -403,6 +403,7 @@ wasmtime = { version = "31", default-features = false }
 wasmtime-wasi = { version = "31", default-features = false }
 wasmtime-wasi-http = { version = "31", default-features = false }
 wasmtime-wit-bindgen = { version = "31", default-features = false }
+wasi-webgpu-wasmtime = { git = "https://github.com/wasi-gfx/wasi-gfx-runtime.git", rev = "5c0fc8bb2b597d477236beb00488755d1e94a02d" }
 wat = { version = "1", default-features = false }
 webpki-roots = { version = "1.0", default-features = false }
 which = { version = "7", default-features = false }

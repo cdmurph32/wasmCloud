@@ -49,6 +49,7 @@ wasmtime = { workspace = true, features = [
 ] }
 wasmtime-wasi = { workspace = true }
 wasmtime-wasi-http = { workspace = true }
+wasi-webgpu-wasmtime = { workspace = true }
 wit-bindgen-wrpc = { workspace = true }
 wit-component = { workspace = true }
 wrpc-interface-blobstore = { workspace = true }

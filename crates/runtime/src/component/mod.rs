@@ -18,6 +18,7 @@ use wascap::wasm::extract_claims;
 use wasi_preview1_component_adapter_provider::{
     WASI_SNAPSHOT_PREVIEW1_ADAPTER_NAME, WASI_SNAPSHOT_PREVIEW1_REACTOR_ADAPTER,
 };
+use wasi_webgpu_wasmtime::WasiWebGpuView;
 use wasmtime::component::{types, Linker, ResourceTable, ResourceTableError, ResourceType};
 use wasmtime_wasi::{IoView, WasiCtx, WasiCtxBuilder, WasiView};
 use wasmtime_wasi_http::WasiHttpCtx;
@@ -222,6 +223,14 @@ fn new_store<H: Handler>(
             handler,
             wasi,
             http: WasiHttpCtx::new(),
+            instance: Arc::new(wasi_webgpu_wasmtime::reexports::wgpu_core::global::Global::new(
+                "webgpu",
+                &wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceDescriptor {
+                    backends: wasi_webgpu_wasmtime::reexports::wgpu_types::Backends::all(),
+                    flags: wasi_webgpu_wasmtime::reexports::wgpu_types::InstanceFlags::from_build_config(),
+                    backend_options: wasi_webgpu_wasmtime::reexports::wgpu_types::BackendOptions::default(),
+                },
+            )),
             table,
             shared_resources: SharedResourceTable::default(),
             timeout: max_execution_time,
@@ -271,6 +280,31 @@ pub type InvocationStream = Pin<
     >,
 >;
 
+struct MySpawner;
+
+impl wasi_webgpu_wasmtime::MainThreadSpawner for MySpawner {
+    fn spawn<F, T>(&self, f: F) -> impl futures::Future<Output = T>
+    where
+        F: FnOnce() -> T + Send + Sync + 'static,
+        T: Send + Sync + 'static,
+    {
+        std::future::ready(f())
+    }
+}
+
+impl<H> WasiWebGpuView for Ctx<H>
+where
+    H: Handler,
+{
+    fn instance(&self) -> Arc<wasi_webgpu_wasmtime::reexports::wgpu_core::global::Global> {
+        Arc::clone(&self.instance)
+    }
+
+    fn ui_thread_spawner(&self) -> Box<impl wasi_webgpu_wasmtime::MainThreadSpawner> {
+        Box::new(MySpawner)
+    }
+}
+
 impl<H> Component<H>
 where
     H: Handler,
@@ -317,6 +351,7 @@ where
             .context("failed to link core WASI interfaces")?;
         wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
             .context("failed to link `wasi:http`")?;
+        wasi_webgpu_wasmtime::add_to_linker(&mut linker)?;
 
         linker_fn(&mut linker)?;
 
@@ -858,6 +893,7 @@ where
     handler: H,
     wasi: WasiCtx,
     http: WasiHttpCtx,
+    instance: Arc<wasi_webgpu_wasmtime::reexports::wgpu_core::global::Global>,
     table: ResourceTable,
     shared_resources: SharedResourceTable,
     timeout: Duration,

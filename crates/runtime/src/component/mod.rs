@@ -75,6 +75,7 @@ pub enum ReplacedInstanceTarget {
     HttpIncomingHandler,
     /// `wasi:http/outgoing-handler` instance replacement
     HttpOutgoingHandler,
+
 }
 
 fn is_0_2(version: &str, min_patch: u64) -> bool {
@@ -280,9 +281,10 @@ pub type InvocationStream = Pin<
     >,
 >;
 
-struct MySpawner;
+// There is no UI thread to spawn.
+struct DummySpawner;
 
-impl wasi_webgpu_wasmtime::MainThreadSpawner for MySpawner {
+impl wasi_webgpu_wasmtime::MainThreadSpawner for DummySpawner {
     fn spawn<F, T>(&self, f: F) -> impl futures::Future<Output = T>
     where
         F: FnOnce() -> T + Send + Sync + 'static,
@@ -301,7 +303,7 @@ where
     }
 
     fn ui_thread_spawner(&self) -> Box<impl wasi_webgpu_wasmtime::MainThreadSpawner> {
-        Box::new(MySpawner)
+        Box::new(DummySpawner)
     }
 }
 
@@ -549,6 +551,9 @@ where
                     | "udp-create-socket" | "udp",
                     Some(version),
                 )) if is_0_2(version, 0) => {}
+                Some(("wasi:webgpu", "webgpu", Some("0.0.1"))) => {}
+
+
                 _ if rt.skip_feature_gated_instance(name) => {}
                 _ => link_item(
                     &engine,
@@ -694,6 +699,7 @@ where
                     invocations.push(on_set);
                     invocations.push(on_delete);
                 }
+
                 (name, types::ComponentItem::ComponentFunc(ty)) => {
                     let engine = self.engine.clone();
                     let handler = handler.clone();

@@ -206,6 +206,7 @@ impl wrpc_transport::Invoke for Handler {
             Some(ReplacedInstanceTarget::KeyvalueWatch) => "wasi:keyvalue/watcher",
             Some(ReplacedInstanceTarget::HttpIncomingHandler) => "wasi:http/incoming-handler",
             Some(ReplacedInstanceTarget::HttpOutgoingHandler) => "wasi:http/outgoing-handler",
+
             None => instance.split_once('@').map_or(instance, |(l, _)| l),
         };
 
